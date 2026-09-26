@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block title %}Cancel Invoice #{{ sale.invoice_no }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="card-body p-4 text-center">
+                <i class="fa-solid fa-triangle-exclamation text-danger fs-1 mb-3"></i>
+                <h5 class="fw-bold text-dark">Confirm Invoice Cancellation</h5>
+                <p class="text-muted">Are you sure you want to cancel Invoice <strong>#{{ sale.invoice_no }}</strong>?</p>
+                <div class="alert alert-warning py-2 small mb-4">
+                    <i class="fa-solid fa-rotate-left me-1"></i> Stock for all items in this invoice will be automatically restored to inventory.
+                </div>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-center gap-2">
+                        <a href="{% url 'sales:sale_detail' sale.id %}" class="btn btn-light border px-4">Go Back</a>
+                        <button type="submit" class="btn btn-danger px-4 fw-bold">Cancel Invoice & Restock</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

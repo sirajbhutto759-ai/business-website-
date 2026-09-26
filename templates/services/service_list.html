@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Services & Repairs{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+        <h4 class="fw-bold mb-1"><i class="fa-solid fa-screwdriver-wrench me-2 text-primary"></i>Services & Repair Tickets</h4>
+        <p class="text-muted small mb-0">UPS Repairs, Battery Replacements, Solar Panel & Inverter Installations.</p>
+    </div>
+    <a href="{% url 'services:service_create' %}" class="btn btn-primary fw-bold">
+        <i class="fa-solid fa-plus me-1"></i> New Service Job
+    </a>
+</div>
+
+<!-- Search & Filters -->
+<div class="card border-0 shadow-sm rounded-3 mb-4">
+    <div class="card-body p-3">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-md-4">
+                <input type="text" name="q" class="form-control" placeholder="Search Service ID, customer, description..." value="{{ query }}">
+            </div>
+            <div class="col-md-3">
+                <select name="service_type" class="form-select">
+                    <option value="">-- All Service Types --</option>
+                    <option value="UPS_REPAIR" {% if selected_type == 'UPS_REPAIR' %}selected{% endif %}>UPS Repair</option>
+                    <option value="BATTERY_REPLACEMENT" {% if selected_type == 'BATTERY_REPLACEMENT' %}selected{% endif %}>Battery Replacement</option>
+                    <option value="SOLAR_INSTALLATION" {% if selected_type == 'SOLAR_INSTALLATION' %}selected{% endif %}>Solar Installation</option>
+                    <option value="INVERTER_INSTALLATION" {% if selected_type == 'INVERTER_INSTALLATION' %}selected{% endif %}>Inverter Installation</option>
+                    <option value="MAINTENANCE" {% if selected_type == 'MAINTENANCE' %}selected{% endif %}>Maintenance</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="status" class="form-select">
+                    <option value="">-- Status --</option>
+                    <option value="PENDING" {% if selected_status == 'PENDING' %}selected{% endif %}>Pending</option>
+                    <option value="IN_PROGRESS" {% if selected_status == 'IN_PROGRESS' %}selected{% endif %}>In Progress</option>
+                    <option value="COMPLETED" {% if selected_status == 'COMPLETED' %}selected{% endif %}>Completed</option>
+                    <option value="DELIVERED" {% if selected_status == 'DELIVERED' %}selected{% endif %}>Delivered</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex gap-1">
+                <button type="submit" class="btn btn-primary w-100 fw-semibold">Filter</button>
+                <a href="{% url 'services:service_list' %}" class="btn btn-light border"><i class="fa-solid fa-rotate"></i></a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="custom-table-card">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Service ID</th>
+                    <th>Date</th>
+                    <th>Customer Name</th>
+                    <th>Service Type</th>
+                    <th>Total Charges</th>
+                    <th>Paid</th>
+                    <th>Balance</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in services %}
+                <tr>
+                    <td class="fw-bold">
+                        <a href="{% url 'services:service_detail' s.id %}" class="text-decoration-none">{{ s.service_no }}</a>
+                    </td>
+                    <td class="small text-muted">{{ s.service_date|date:"d-M-Y" }}</td>
+                    <td class="fw-semibold">{{ s.get_customer_name }}</td>
+                    <td><span class="badge bg-light text-dark border">{{ s.get_service_type_display }}</span></td>
+                    <td class="fw-bold text-dark">Rs. {{ s.total_charges|floatformat:2|intcomma }}</td>
+                    <td class="text-success">Rs. {{ s.paid_amount|floatformat:2|intcomma }}</td>
+                    <td>
+                        {% if s.remaining_balance > 0 %}
+                            <span class="badge bg-danger">Rs. {{ s.remaining_balance|floatformat:2|intcomma }}</span>
+                        {% else %}
+                            <span class="badge bg-success">Clear</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if s.status == 'PENDING' %}<span class="badge bg-warning text-dark">Pending</span>{% endif %}
+                        {% if s.status == 'IN_PROGRESS' %}<span class="badge bg-info text-dark">In Progress</span>{% endif %}
+                        {% if s.status == 'COMPLETED' %}<span class="badge bg-primary">Completed</span>{% endif %}
+                        {% if s.status == 'DELIVERED' %}<span class="badge bg-success">Delivered</span>{% endif %}
+                    </td>
+                    <td class="text-end">
+                        <a href="{% url 'services:service_detail' s.id %}" class="btn btn-sm btn-outline-primary me-1"><i class="fa-solid fa-eye"></i> View</a>
+                        <a href="{% url 'services:service_edit' s.id %}" class="btn btn-sm btn-outline-secondary me-1"><i class="fa-solid fa-pen"></i> Edit</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="9" class="text-center text-muted py-4">No service job tickets found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

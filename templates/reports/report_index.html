@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% block title %}Reports & Financial Analytics{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h4 class="fw-bold mb-1"><i class="fa-solid fa-chart-line me-2 text-primary"></i>Reports & Business Intelligence</h4>
+    <p class="text-muted small mb-0">Select financial, sales, inventory, profit, or ledger reports to print or export.</p>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm rounded-3 h-100 stat-card">
+            <div class="card-body p-4 text-center">
+                <div class="stat-icon bg-blue mx-auto mb-3"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+                <h5 class="fw-bold text-dark">Sales Report</h5>
+                <p class="text-muted small">Daily, weekly, monthly, and yearly sales breakdown with customer & payment method filters.</p>
+                <a href="{% url 'reports:sales_report' %}" class="btn btn-outline-primary fw-bold w-100">View Sales Report</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm rounded-3 h-100 stat-card">
+            <div class="card-body p-4 text-center">
+                <div class="stat-icon bg-indigo mx-auto mb-3"><i class="fa-solid fa-cart-shopping"></i></div>
+                <h5 class="fw-bold text-dark">Purchase Report</h5>
+                <p class="text-muted small">Detailed record of stock purchases, supplier bills, and payment settlements.</p>
+                <a href="{% url 'reports:purchase_report' %}" class="btn btn-outline-primary fw-bold w-100">View Purchase Report</a>
+            </div>
+        </div>
+    </div>
+
+    {% if user.profile.is_admin %}
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm rounded-3 h-100 stat-card">
+            <div class="card-body p-4 text-center">
+                <div class="stat-icon bg-green mx-auto mb-3"><i class="fa-solid fa-sack-dollar"></i></div>
+                <h5 class="fw-bold text-dark">Profit & Loss Report</h5>
+                <p class="text-muted small">Calculate Net Profit = (Sale Price - Purchase Cost - Discounts) - Expenses.</p>
+                <a href="{% url 'reports:profit_report' %}" class="btn btn-outline-success fw-bold w-100">View Profit Report</a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm rounded-3 h-100 stat-card">
+            <div class="card-body p-4 text-center">
+                <div class="stat-icon bg-orange mx-auto mb-3"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+                <h5 class="fw-bold text-dark">Customer Balance (Udhaar)</h5>
+                <p class="text-muted small">List of customers with outstanding credit balances and pending receivables.</p>
+                <a href="{% url 'reports:customer_balance_report' %}" class="btn btn-outline-warning text-dark fw-bold w-100">View Udhaar Report</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm rounded-3 h-100 stat-card">
+            <div class="card-body p-4 text-center">
+                <div class="stat-icon bg-purple mx-auto mb-3"><i class="fa-solid fa-truck-field"></i></div>
+                <h5 class="fw-bold text-dark">Supplier Payables</h5>
+                <p class="text-muted small">Summary of amounts owed to suppliers for stock purchases.</p>
+                <a href="{% url 'reports:supplier_payable_report' %}" class="btn btn-outline-dark fw-bold w-100">View Payables Report</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm rounded-3 h-100 stat-card">
+            <div class="card-body p-4 text-center">
+                <div class="stat-icon bg-red mx-auto mb-3"><i class="fa-solid fa-boxes-stacked"></i></div>
+                <h5 class="fw-bold text-dark">Stock Valuation & Low Stock</h5>
+                <p class="text-muted small">Current inventory levels, total purchase value, sale value, and low stock warnings.</p>
+                <a href="{% url 'reports:stock_report' %}" class="btn btn-outline-danger fw-bold w-100">View Stock Report</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

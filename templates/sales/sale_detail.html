@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Invoice #{{ sale.invoice_no }}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3 no-print">
+    <div>
+        <h4 class="fw-bold mb-1"><i class="fa-solid fa-file-invoice me-2 text-primary"></i>Invoice Details #{{ sale.invoice_no }}</h4>
+        <p class="text-muted small mb-0">Created on {{ sale.sale_date|date:"d-M-Y h:i A" }} by {{ sale.created_by.username|default:"System" }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <button onclick="window.print()" class="btn btn-outline-primary fw-bold">
+            <i class="fa-solid fa-print me-1"></i> Print Invoice
+        </button>
+        <a href="{% url 'sales:sale_print_thermal' sale.id %}" target="_blank" class="btn btn-outline-dark fw-bold">
+            <i class="fa-solid fa-receipt me-1"></i> Thermal Receipt
+        </a>
+        <a href="{% url 'sales:sale_pdf' sale.id %}" target="_blank" class="btn btn-danger fw-bold">
+            <i class="fa-solid fa-file-pdf me-1"></i> Download PDF
+        </a>
+        {% if user.profile.is_admin and sale.status != 'CANCELLED' %}
+        <a href="{% url 'sales:sale_cancel' sale.id %}" class="btn btn-outline-danger fw-semibold">
+            <i class="fa-solid fa-ban me-1"></i> Cancel Invoice
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Printable A4 Invoice Layout -->
+<div class="card border-0 shadow-sm rounded-3 print-area p-4 bg-white" style="max-width: 850px; margin: 0 auto;">
+    {% if sale.status == 'CANCELLED' %}
+    <div class="alert alert-danger text-center fw-bold fs-5 mb-4">
+        *** THIS INVOICE HAS BEEN CANCELLED ***
+    </div>
+    {% endif %}
+
+    <!-- Invoice Header -->
+    <div class="row align-items-center border-bottom pb-3 mb-4">
+        <div class="col-7">
+            <h2 class="fw-bold text-dark mb-1">{{ shop_settings.shop_name|upper }}</h2>
+            <h6 class="text-primary fw-bold mb-2">{{ shop_settings.subtitle }}</h6>
+            <p class="text-muted small mb-0">
+                <i class="fa-solid fa-location-dot me-1"></i>{{ shop_settings.address }}<br>
+                <i class="fa-solid fa-phone me-1"></i>Phone: {{ shop_settings.phone }} | WhatsApp: {{ shop_settings.whatsapp }}
+            </p>
+        </div>
+        <div class="col-5 text-end">
+            <h3 class="fw-bold text-secondary mb-1">INVOICE</h3>
+            <div class="fs-5 fw-bold text-primary">#{{ sale.invoice_no }}</div>
+            <div class="small text-muted">Date: {{ sale.sale_date|date:"d-M-Y h:i A" }}</div>
+            <div class="mt-2">
+                {% if sale.payment_status == 'PAID' %}<span class="badge bg-success fs-6">PAID</span>{% endif %}
+                {% if sale.payment_status == 'PARTIAL' %}<span class="badge bg-warning text-dark fs-6">PARTIAL</span>{% endif %}
+                {% if sale.payment_status == 'UNPAID' %}<span class="badge bg-danger fs-6">UNPAID</span>{% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Info -->
+    <div class="row bg-light rounded-3 p-3 mb-4 border">
+        <div class="col-6">
+            <span class="text-uppercase text-muted small fw-bold d-block mb-1">Billed To:</span>
+            <h5 class="fw-bold text-dark mb-1">{{ sale.get_customer_name }}</h5>
+            <p class="small text-muted mb-0">
+                Phone: {{ sale.get_customer_phone }}<br>
+                {% if sale.customer and sale.customer.address %}Address: {{ sale.customer.address }}{% endif %}
+            </p>
+        </div>
+        <div class="col-6 text-end">
+            <span class="text-uppercase text-muted small fw-bold d-block mb-1">Payment Info:</span>
+            <span class="badge bg-dark fs-6 mb-1">{{ sale.get_payment_method_display }}</span>
+            <div class="small text-muted">Issued by: {{ sale.created_by.username|default:"Staff" }}</div>
+        </div>
+    </div>
+
+    <!-- Items Table -->
+    <div class="table-responsive mb-4">
+        <table class="table table-bordered align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th style="width: 5%;">#</th>
+                    <th>Product Description</th>
+                    <th class="text-center" style="width: 10%;">Qty</th>
+                    <th class="text-end" style="width: 15%;">Unit Price</th>
+                    <th class="text-end" style="width: 15%;">Discount</th>
+                    <th class="text-end" style="width: 20%;">Total (Rs.)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in sale.items.all %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>
+                        <strong class="text-dark d-block">{{ item.product.name }}</strong>
+                        <small class="text-muted">SKU: {{ item.product.sku }}</small>
+                    </td>
+                    <td class="text-center fw-bold">{{ item.quantity }}</td>
+                    <td class="text-end">Rs. {{ item.unit_price|floatformat:2|intcomma }}</td>
+                    <td class="text-end">Rs. {{ item.item_discount|floatformat:2|intcomma }}</td>
+                    <td class="text-end fw-bold">Rs. {{ item.total_price|floatformat:2|intcomma }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Summary Calculations -->
+    <div class="row justify-content-end mb-4">
+        <div class="col-md-5">
+            <div class="table-responsive">
+                <table class="table table-sm table-borderless">
+                    <tr>
+                        <td class="fw-semibold text-muted">Subtotal:</td>
+                        <td class="text-end fw-bold">Rs. {{ sale.subtotal|floatformat:2|intcomma }}</td>
+                    </tr>
+                    <tr>
+                        <td class="fw-semibold text-muted">Overall Discount:</td>
+                        <td class="text-end text-danger fw-bold">- Rs. {{ sale.overall_discount|floatformat:2|intcomma }}</td>
+                    </tr>
+                    <tr class="border-top border-bottom">
+                        <td class="fs-5 fw-bold text-dark">Grand Total:</td>
+                        <td class="fs-5 text-end fw-bold text-primary">Rs. {{ sale.grand_total|floatformat:2|intcomma }}</td>
+                    </tr>
+                    <tr>
+                        <td class="fw-semibold text-success">Paid Amount:</td>
+                        <td class="text-end text-success fw-bold">Rs. {{ sale.paid_amount|floatformat:2|intcomma }}</td>
+                    </tr>
+                    {% if sale.change_due > 0 %}
+                    <tr>
+                        <td class="fw-bold text-success">Change Due / Return:</td>
+                        <td class="text-end fw-bold text-success">
+                            Rs. {{ sale.change_due|floatformat:2|intcomma }}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td class="fw-bold {% if sale.remaining_balance > 0 %}text-danger{% else %}text-success{% endif %}">Remaining Balance:</td>
+                        <td class="text-end fw-bold {% if sale.remaining_balance > 0 %}text-danger{% else %}text-success{% endif %}">
+                            Rs. {{ sale.remaining_balance|floatformat:2|intcomma }}
+                        </td>
+                    </tr>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer Note -->
+    <div class="border-top pt-3 text-center">
+        <h6 class="fw-bold text-dark mb-1">Thank you for choosing Siraj UPS and Solar!</h6>
+        <p class="text-muted small mb-0">{{ shop_settings.invoice_footer }}</p>
+    </div>
+</div>
+{% endblock %}

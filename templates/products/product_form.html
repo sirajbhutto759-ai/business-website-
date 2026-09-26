@@ -1,0 +1,212 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-9">
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="card-header bg-white py-3 border-0 d-flex align-items-center justify-content-between">
+                <h5 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-box-open me-2 text-primary"></i>{{ title }}</h5>
+                <a href="{% url 'products:product_list' %}" class="btn btn-sm btn-light border">
+                    <i class="fa-solid fa-arrow-left me-1"></i> Back to Products
+                </a>
+            </div>
+            <div class="card-body p-4">
+                <form method="post" id="productForm">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <!-- Product Name -->
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Product Name <span class="text-danger">*</span></label>
+                            {{ form.name }}
+                            {% if form.name.errors %}<div class="text-danger small mt-1">{{ form.name.errors.0 }}</div>{% endif %}
+                        </div>
+                        <!-- SKU -->
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">SKU / Product Code <span class="text-danger">*</span></label>
+                            {{ form.sku }}
+                            {% if form.sku.errors %}<div class="text-danger small mt-1">{{ form.sku.errors.0 }}</div>{% endif %}
+                        </div>
+
+                        <!-- Category with Quick Add -->
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold d-flex align-items-center gap-2">
+                                Category
+                                <button type="button" class="btn btn-link btn-sm p-0 text-primary fw-semibold"
+                                        data-bs-toggle="modal" data-bs-target="#addCategoryModal" title="Add new category">
+                                    <i class="fa-solid fa-plus-circle"></i> + New Category
+                                </button>
+                            </label>
+                            {{ form.category }}
+                            <div class="form-text text-muted">No category yet? Click "+ New Category" above.</div>
+                        </div>
+                        <!-- Brand -->
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Brand</label>
+                            {{ form.brand }}
+                        </div>
+                        <!-- Model Number -->
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Model Number</label>
+                            {{ form.model_number }}
+                        </div>
+
+                        <!-- Unit -->
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Unit</label>
+                            {{ form.unit }}
+                        </div>
+                        <!-- Purchase Price -->
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Purchase Price (Rs.)</label>
+                            {{ form.purchase_price }}
+                        </div>
+                        <!-- Sale Price -->
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Sale Price (Rs.)</label>
+                            {{ form.sale_price }}
+                        </div>
+                        <!-- Default Supplier -->
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Default Supplier</label>
+                            {{ form.supplier }}
+                        </div>
+
+                        <!-- Stock -->
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Initial / Current Stock</label>
+                            {{ form.current_stock }}
+                        </div>
+                        <!-- Min Stock -->
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Minimum Stock Warning Level</label>
+                            {{ form.min_stock_level }}
+                        </div>
+
+                        <!-- Description -->
+                        <div class="col-md-12">
+                            <label class="form-label fw-semibold">Description / Notes</label>
+                            {{ form.description }}
+                        </div>
+                    </div>
+
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger mt-3">{{ form.non_field_errors }}</div>
+                    {% endif %}
+
+                    <hr class="my-4">
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{% url 'products:product_list' %}" class="btn btn-light border px-4">Cancel</a>
+                        <button type="submit" class="btn btn-primary px-4 fw-bold">
+                            <i class="fa-solid fa-save me-1"></i> Save Product
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Add Category Modal -->
+<div class="modal fade" id="addCategoryModal" tabindex="-1" aria-labelledby="addCategoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-3">
+            <div class="modal-header border-0 pb-0">
+                <h6 class="modal-title fw-bold" id="addCategoryModalLabel">
+                    <i class="fa-solid fa-tags me-2 text-primary"></i>Add New Category
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pt-2">
+                <div id="categoryModalAlert" class="d-none"></div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold small">Category Name <span class="text-danger">*</span></label>
+                    <input type="text" id="newCategoryName" class="form-control"
+                           placeholder="e.g. Batteries, Inverters, Solar Panels">
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary fw-bold" id="saveCategoryBtn">
+                    <i class="fa-solid fa-plus me-1"></i> Add Category
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const CATEGORY_AJAX_URL = "{% url 'products:category_create_ajax' %}";
+const CSRF_TOKEN = "{{ csrf_token }}";
+
+document.getElementById('saveCategoryBtn').addEventListener('click', function () {
+    const name = document.getElementById('newCategoryName').value.trim();
+    const alertBox = document.getElementById('categoryModalAlert');
+    alertBox.className = 'd-none';
+
+    if (!name) {
+        alertBox.className = 'alert alert-warning py-2 small';
+        alertBox.textContent = 'Category name is required.';
+        return;
+    }
+
+    const btn = this;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving...';
+
+    fetch(CATEGORY_AJAX_URL, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': CSRF_TOKEN,
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'name=' + encodeURIComponent(name)
+    })
+    .then(res => res.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-plus me-1"></i> Add Category';
+        if (data.success) {
+            // Add new option to category dropdown & select it
+            const select = document.getElementById('id_category');
+            let existing = select.querySelector(`option[value="${data.id}"]`);
+            if (!existing) {
+                const option = new Option(data.name, data.id);
+                select.add(option);
+            }
+            select.value = data.id;
+
+            // Close modal
+            bootstrap.Modal.getInstance(document.getElementById('addCategoryModal')).hide();
+            document.getElementById('newCategoryName').value = '';
+
+            // Show inline success
+            const toast = document.createElement('div');
+            toast.className = 'alert alert-success py-2 small mt-2';
+            toast.innerHTML = `<i class="fa-solid fa-circle-check me-1"></i> Category "<strong>${data.name}</strong>" ${data.exists ? 'already existed and has been selected.' : 'created and selected!'}`;
+            document.getElementById('id_category').parentElement.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        } else {
+            alertBox.className = 'alert alert-danger py-2 small';
+            alertBox.textContent = data.error || 'Something went wrong.';
+        }
+    })
+    .catch(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-plus me-1"></i> Add Category';
+        alertBox.className = 'alert alert-danger py-2 small';
+        alertBox.textContent = 'Could not connect to server.';
+    });
+});
+
+// Allow Enter key in category input
+document.getElementById('newCategoryName').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        document.getElementById('saveCategoryBtn').click();
+    }
+});
+</script>
+{% endblock %}

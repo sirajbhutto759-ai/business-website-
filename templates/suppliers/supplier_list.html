@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Suppliers Management{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+        <h4 class="fw-bold mb-1"><i class="fa-solid fa-truck-field me-2 text-primary"></i>Suppliers Management</h4>
+        <p class="text-muted small mb-0">Track supplier profiles, stock purchases, and remaining payables.</p>
+    </div>
+    <a href="{% url 'suppliers:supplier_create' %}" class="btn btn-primary fw-bold">
+        <i class="fa-solid fa-plus me-1"></i> Add New Supplier
+    </a>
+</div>
+
+<!-- Search Form -->
+<div class="card border-0 shadow-sm rounded-3 mb-4">
+    <div class="card-body p-3">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-md-9">
+                <div class="input-group">
+                    <span class="input-group-text bg-light text-muted"><i class="fa-solid fa-magnifying-glass"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="Search supplier by name, company, phone..." value="{{ query }}">
+                </div>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary w-100 fw-semibold">Search</button>
+                <a href="{% url 'suppliers:supplier_list' %}" class="btn btn-light border">Reset</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="custom-table-card">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Supplier / Company</th>
+                    <th>Contact Person</th>
+                    <th>Phone</th>
+                    <th>Total Purchases</th>
+                    <th>Total Paid</th>
+                    <th>Remaining Payable</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in supplier_data %}
+                <tr>
+                    <td class="fw-bold text-dark">
+                        <a href="{% url 'suppliers:supplier_detail' item.supplier.id %}" class="text-decoration-none">
+                            {{ item.supplier.company|default:item.supplier.name }}
+                        </a>
+                    </td>
+                    <td>{{ item.supplier.name }}</td>
+                    <td>{{ item.supplier.phone|default:"-" }}</td>
+                    <td class="fw-semibold">Rs. {{ item.total_purchases|floatformat:2|intcomma }}</td>
+                    <td class="text-success">Rs. {{ item.total_paid|floatformat:2|intcomma }}</td>
+                    <td>
+                        {% if item.payable > 0 %}
+                            <span class="badge bg-warning text-dark fs-6">Rs. {{ item.payable|floatformat:2|intcomma }}</span>
+                        {% else %}
+                            <span class="badge bg-success">Clear</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        <a href="{% url 'suppliers:supplier_detail' item.supplier.id %}" class="btn btn-sm btn-outline-primary me-1">
+                            <i class="fa-solid fa-book-open"></i> Ledger
+                        </a>
+                        <a href="{% url 'suppliers:supplier_edit' item.supplier.id %}" class="btn btn-sm btn-outline-secondary me-1">
+                            <i class="fa-solid fa-pen"></i> Edit
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="text-center text-muted py-4">No supplier records found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

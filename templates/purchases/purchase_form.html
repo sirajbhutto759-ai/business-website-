@@ -1,0 +1,267 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}New Stock Purchase{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-1"><i class="fa-solid fa-cart-plus me-2 text-primary"></i>Record Stock Purchase</h4>
+        <p class="text-muted small mb-0">Select supplier, add products, set purchase prices, and automatically update inventory stock.</p>
+    </div>
+    <div class="badge bg-dark fs-6 px-3 py-2">
+        Purchase #: <span class="text-warning font-monospace fw-bold">{{ next_purchase_no }}</span>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm rounded-3 mb-3">
+            <div class="card-body p-3">
+                <label class="form-label fw-bold text-dark mb-1">Add Product to Purchase Order</label>
+                <div class="row g-2 align-items-center">
+                    <div class="col-md-7">
+                        <select id="selectProduct" class="form-select">
+                            <option value="">-- Select Product --</option>
+                            {% for p in products %}
+                            <option value="{{ p.id }}" data-sku="{{ p.sku }}" data-price="{{ p.purchase_price }}">{{ p.name }} (SKU: {{ p.sku }} | Current Stock: {{ p.current_stock }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="button" class="btn btn-primary w-100 fw-bold" id="btnAddProduct">
+                            <i class="fa-solid fa-plus me-1"></i> Add Item
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="card-header bg-white py-3 border-0">
+                <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-list me-2 text-primary"></i>Purchased Items Table</h6>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 40%;">Product</th>
+                            <th style="width: 20%;">Purchase Price (Rs.)</th>
+                            <th style="width: 15%;">Qty</th>
+                            <th style="width: 20%;">Total (Rs.)</th>
+                            <th style="width: 5%;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="purTableBody">
+                        <tr id="emptyPurRow">
+                            <td colspan="5" class="text-center text-muted py-4">No products added yet. Select products above.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="card-header bg-white py-3 border-0">
+                <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-file-invoice me-2 text-primary"></i>Purchase Summary</h6>
+            </div>
+            <div class="card-body p-3">
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Supplier <span class="text-danger">*</span></label>
+                    <select id="supplierSelect" class="form-select">
+                        <option value="">-- Select Supplier --</option>
+                        {% for s in suppliers %}
+                        <option value="{{ s.id }}">{{ s.name }} ({% if s.company %}{{ s.company }}{% else %}Supplier{% endif %})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Purchase Date</label>
+                    <input type="date" id="purchaseDateInput" class="form-control" value="{{ today }}">
+                </div>
+
+                <hr class="my-3">
+
+                <div class="d-flex justify-content-between mb-3 bg-light p-3 rounded-3 border">
+                    <span class="fs-5 fw-bold text-dark">Grand Total:</span>
+                    <span class="fs-4 fw-bold text-primary" id="lblPurGrandTotal">Rs. 0.00</span>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Paid Amount to Supplier (Rs.)</label>
+                    <input type="number" id="inputPurPaidAmount" class="form-control form-control-lg text-end fw-bold text-success" value="0" min="0" step="10">
+                </div>
+
+                <div class="d-flex justify-content-between mb-3">
+                    <span class="fw-bold text-dark">Remaining Payable:</span>
+                    <span class="fw-bold text-warning fs-5" id="lblPurRemaining">Rs. 0.00</span>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Payment Method</label>
+                    <select id="purPaymentMethod" class="form-select">
+                        <option value="CASH">Cash</option>
+                        <option value="BANK">Bank Transfer</option>
+                        <option value="EASYPAISA">Easypaisa</option>
+                        <option value="JAZZCASH">JazzCash</option>
+                        <option value="OTHER">Other</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <textarea id="purNotes" class="form-control form-control-sm" rows="2" placeholder="Purchase notes / Invoice # from supplier..."></textarea>
+                </div>
+
+                <button type="button" class="btn btn-primary btn-lg w-100 fw-bold shadow" id="btnSavePurchase">
+                    <i class="fa-solid fa-check-circle me-2"></i> Save Purchase Order
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let purItems = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('btnAddProduct').addEventListener('click', function() {
+        const select = document.getElementById('selectProduct');
+        const pId = select.value;
+        if (!pId) return;
+
+        const opt = select.options[select.selectedIndex];
+        const pName = opt.text.split('(')[0].trim();
+        const sku = opt.dataset.sku;
+        const price = parseFloat(opt.dataset.price) || 0;
+
+        const existing = purItems.find(item => item.product_id === parseInt(pId));
+        if (existing) {
+            existing.qty += 1;
+        } else {
+            purItems.push({
+                product_id: parseInt(pId),
+                name: pName,
+                sku: sku,
+                purchase_price: price,
+                qty: 1
+            });
+        }
+        renderPurTable();
+    });
+
+    document.getElementById('inputPurPaidAmount').addEventListener('input', renderPurTable);
+    document.getElementById('btnSavePurchase').addEventListener('click', submitPurchase);
+});
+
+function renderPurTable() {
+    const tbody = document.getElementById('purTableBody');
+    tbody.innerHTML = '';
+
+    if (purItems.length === 0) {
+        tbody.innerHTML = '<tr id="emptyPurRow"><td colspan="5" class="text-center text-muted py-4">No products added yet. Select products above.</td></tr>';
+        document.getElementById('lblPurGrandTotal').innerText = 'Rs. 0.00';
+        document.getElementById('lblPurRemaining').innerText = 'Rs. 0.00';
+        return;
+    }
+
+    let grandTotal = 0;
+
+    purItems.forEach((item, idx) => {
+        const itemTotal = item.purchase_price * item.qty;
+        grandTotal += itemTotal;
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>
+                <strong class="d-block text-dark">${item.name}</strong>
+                <small class="text-muted">SKU: ${item.sku}</small>
+            </td>
+            <td>
+                <input type="number" class="form-control form-control-sm text-end" value="${item.purchase_price}" onchange="updatePurPrice(${idx}, this.value)">
+            </td>
+            <td>
+                <input type="number" class="form-control form-control-sm text-center" value="${item.qty}" min="1" onchange="updatePurQty(${idx}, this.value)">
+            </td>
+            <td class="fw-bold text-end">
+                Rs. ${itemTotal.toLocaleString('en-US', {minimumFractionDigits: 2})}
+            </td>
+            <td class="text-center">
+                <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="removePurItem(${idx})"><i class="fa-solid fa-xmark"></i></button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    const paidInput = document.getElementById('inputPurPaidAmount');
+    if (parseFloat(paidInput.value) === 0 && grandTotal > 0) {
+        paidInput.value = grandTotal;
+    }
+    const paid = parseFloat(paidInput.value) || 0;
+    const remaining = Math.max(0, grandTotal - paid);
+
+    document.getElementById('lblPurGrandTotal').innerText = `Rs. ${grandTotal.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+    document.getElementById('lblPurRemaining').innerText = `Rs. ${remaining.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+}
+
+function updatePurPrice(index, val) {
+    purItems[index].purchase_price = parseFloat(val) || 0;
+    renderPurTable();
+}
+
+function updatePurQty(index, val) {
+    purItems[index].qty = parseInt(val) || 1;
+    renderPurTable();
+}
+
+function removePurItem(index) {
+    purItems.splice(index, 1);
+    renderPurTable();
+}
+
+function submitPurchase() {
+    const supplierId = document.getElementById('supplierSelect').value;
+    if (!supplierId) {
+        alert("Please select a supplier.");
+        return;
+    }
+    if (purItems.length === 0) {
+        alert("Please add at least one product.");
+        return;
+    }
+
+    const payload = {
+        supplier_id: parseInt(supplierId),
+        purchase_date: document.getElementById('purchaseDateInput').value,
+        payment_method: document.getElementById('purPaymentMethod').value,
+        paid_amount: parseFloat(document.getElementById('inputPurPaidAmount').value) || 0,
+        notes: document.getElementById('purNotes').value,
+        items: purItems
+    };
+
+    const btn = document.getElementById('btnSavePurchase');
+    btn.disabled = true;
+
+    fetch("{% url 'purchases:purchase_create' %}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": "{{ csrf_token }}"
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+        btn.disabled = false;
+        if (data.success) {
+            window.location.href = `/purchases/${data.purchase_id}/`;
+        } else {
+            alert(`Error: ${data.error}`);
+        }
+    });
+}
+</script>
+{% endblock %}

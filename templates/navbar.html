@@ -1,0 +1,39 @@
+{% load static %}
+<nav class="navbar navbar-expand-lg top-navbar px-4 py-2">
+    <div class="container-fluid p-0">
+        <button class="btn btn-sm btn-outline-secondary me-3" id="sidebarToggle">
+            <i class="fa-solid fa-bars"></i>
+        </button>
+
+        <div class="d-none d-md-flex align-items-center gap-2 me-auto">
+            <span class="fw-bold text-dark fs-5">{{ shop_settings.shop_name }}</span>
+            <span class="badge bg-light text-secondary border fw-normal"><i class="fa-solid fa-phone me-1"></i>{{ shop_settings.phone }}</span>
+        </div>
+
+        <div class="d-flex align-items-center gap-3">
+            <a href="{% url 'sales:pos_billing' %}" class="btn btn-primary btn-sm px-3 fw-bold rounded-pill shadow-sm">
+                <i class="fa-solid fa-plus me-1"></i> New Invoice
+            </a>
+
+            <div class="dropdown">
+                <button class="btn btn-light btn-sm dropdown-toggle d-flex align-items-center gap-2 border rounded-pill px-3" type="button" data-bs-toggle="dropdown">
+                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 28px; height: 28px; font-size: 0.8rem;">
+                        {{ user.username|first|upper }}
+                    </div>
+                    <span class="fw-semibold text-dark">{{ user.username }}</span>
+                    <span class="badge {% if user.profile.is_admin %}bg-danger{% else %}bg-info text-dark{% endif %}" style="font-size: 0.65rem;">
+                        {{ user.profile.get_role_display }}
+                    </span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
+                    <li><h6 class="dropdown-header">Signed in as <strong>{{ user.username }}</strong></h6></li>
+                    <li><hr class="dropdown-divider"></li>
+                    {% if user.profile.is_admin %}
+                    <li><a class="dropdown-item" href="{% url 'settings_app:shop_settings' %}"><i class="fa-solid fa-gear me-2 text-muted"></i>Settings</a></li>
+                    {% endif %}
+                    <li><a class="dropdown-item text-danger" href="{% url 'accounts:logout' %}"><i class="fa-solid fa-right-from-bracket me-2"></i>Logout</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</nav>

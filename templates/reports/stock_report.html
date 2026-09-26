@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}Stock Valuation & Inventory Report{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3 no-print">
+    <div>
+        <h4 class="fw-bold mb-1"><i class="fa-solid fa-boxes-stacked me-2 text-danger"></i>Stock Valuation & Inventory Report</h4>
+        <p class="text-muted small mb-0">Total asset value of products currently in shop stock.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <button onclick="window.print()" class="btn btn-outline-primary fw-bold"><i class="fa-solid fa-print me-1"></i> Print</button>
+        <a href="{% url 'reports:index' %}" class="btn btn-light border"><i class="fa-solid fa-arrow-left me-1"></i> Back</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="stat-card">
+            <span class="text-muted small fw-semibold text-uppercase">Total Inventory Cost (Purchase Value)</span>
+            <h3 class="fw-bold text-dark mb-0 mt-1">Rs. {{ total_purchase_val|floatformat:2|intcomma }}</h3>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="stat-card">
+            <span class="text-muted small fw-semibold text-uppercase">Total Estimated Sale Value</span>
+            <h3 class="fw-bold text-primary mb-0 mt-1">Rs. {{ total_sale_val|floatformat:2|intcomma }}</h3>
+        </div>
+    </div>
+</div>
+
+<div class="custom-table-card print-area">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>SKU Code</th>
+                    <th>Product Name</th>
+                    <th>Category</th>
+                    <th>Current Stock</th>
+                    <th>Purchase Price</th>
+                    <th>Sale Price</th>
+                    <th>Stock Value (Purchase)</th>
+                    <th>Stock Value (Sale)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in products %}
+                <tr {% if p.is_low_stock %}class="table-danger"{% endif %}>
+                    <td class="fw-bold">{{ p.sku }}</td>
+                    <td class="fw-semibold">{{ p.name }}</td>
+                    <td>{{ p.category.name|default:"-" }}</td>
+                    <td>
+                        <span class="badge {% if p.is_low_stock %}bg-danger{% else %}bg-success{% endif %}">
+                            {{ p.current_stock }} {{ p.unit }}
+                        </span>
+                    </td>
+                    <td>Rs. {{ p.purchase_price|floatformat:2|intcomma }}</td>
+                    <td>Rs. {{ p.sale_price|floatformat:2|intcomma }}</td>
+                    <td class="fw-bold">Rs. {{ p.stock_value_purchase|floatformat:2|intcomma }}</td>
+                    <td class="fw-bold text-primary">Rs. {{ p.stock_value_sale|floatformat:2|intcomma }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="text-center text-muted py-4">No product records found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

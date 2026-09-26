@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% block title %}Shop Settings{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="card-header bg-white py-3 border-0">
+                <h5 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-sliders me-2 text-primary"></i>Shop Settings & Invoice Header</h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Shop Name <span class="text-danger">*</span></label>
+                            {{ form.shop_name }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Subtitle / Tagline</label>
+                            {{ form.subtitle }}
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Phone Number</label>
+                            {{ form.phone }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">WhatsApp Number</label>
+                            {{ form.whatsapp }}
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Email Address</label>
+                            {{ form.email }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">NTN / Tax Number</label>
+                            {{ form.ntn_number }}
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label fw-semibold">Shop Address</label>
+                            {{ form.address }}
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label fw-semibold">Invoice Footer Text / Return Policy</label>
+                            {{ form.invoice_footer }}
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label fw-semibold">Shop Logo</label>
+                            {{ form.logo }}
+                            {% if shop_settings.logo %}
+                            <div class="mt-2">
+                                <small class="text-muted d-block">Current Logo:</small>
+                                <img src="{{ shop_settings.logo.url }}" alt="Shop Logo" style="max-height: 50px;" class="rounded border p-1">
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <hr class="my-4">
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="submit" class="btn btn-primary px-4 fw-bold"><i class="fa-solid fa-save me-1"></i> Save Settings</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

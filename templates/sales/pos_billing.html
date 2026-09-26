@@ -1,0 +1,411 @@
+{% extends 'base.html' %}
+{% load humanize %}
+{% block title %}POS Billing Screen{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h4 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-cash-register me-2 text-success"></i>POS Billing & Quick Checkout</h4>
+        <p class="text-muted small mb-0">Create new invoice, search products by SKU/name, select customer, apply discounts, and complete sale.</p>
+    </div>
+    <div class="badge bg-dark fs-6 px-3 py-2">
+        Invoice #: <span id="displayInvoiceNo" class="text-warning font-monospace fw-bold">{{ next_invoice_no }}</span>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- Left Column: Product Search & Cart Items -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm rounded-3 mb-3">
+            <div class="card-body p-3">
+                <label class="form-label fw-bold text-dark mb-1"><i class="fa-solid fa-barcode me-1 text-primary"></i>Product Search / SKU Scanner</label>
+                <div class="position-relative">
+                    <input type="text" id="productSearchInput" class="form-control form-control-lg bg-light" placeholder="Type product name, SKU code, or model (e.g., 150Ah, BAT-150, Inverter)..." autocomplete="off" autofocus>
+                    <div id="searchResultsDropdown" class="dropdown-menu w-100 shadow border-0 mt-1" style="max-height: 280px; overflow-y: auto;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cart Table Card -->
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-0">
+                <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-cart-shopping me-2 text-primary"></i>Invoice Items List</h6>
+                <button type="button" class="btn btn-sm btn-outline-danger" id="btnClearCart"><i class="fa-solid fa-trash me-1"></i> Clear Cart</button>
+            </div>
+            <div class="table-responsive pos-cart-table">
+                <table class="table table-hover align-middle mb-0" id="cartTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 35%;">Product</th>
+                            <th style="width: 15%;">Unit Price</th>
+                            <th style="width: 15%;">Qty</th>
+                            <th style="width: 15%;">Discount</th>
+                            <th style="width: 15%;">Total (Rs.)</th>
+                            <th style="width: 5%;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="cartTableBody">
+                        <tr id="emptyCartRow">
+                            <td colspan="6" class="text-center text-muted py-5">
+                                <i class="fa-solid fa-basket-shopping fs-1 d-block mb-2 text-secondary opacity-50"></i>
+                                Cart is empty. Search and select products above to add to invoice.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Customer & Checkout Summary -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="card-header bg-white py-3 border-0">
+                <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-user me-2 text-primary"></i>Customer & Payment Details</h6>
+            </div>
+            <div class="card-body p-3">
+                <!-- Customer Selection -->
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-secondary">Select Customer</label>
+                    <select id="customerSelect" class="form-select">
+                        <option value="">-- Walk-in Cash Customer --</option>
+                        {% for c in customers %}
+                        <option value="{{ c.id }}" data-phone="{{ c.phone }}" data-balance="{{ c.outstanding_balance }}">{{ c.name }} ({% if c.phone %}{{ c.phone }}{% else %}No Phone{% endif %})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div id="walkinDetails" class="row g-2 mb-3">
+                    <div class="col-6">
+                        <input type="text" id="walkinName" class="form-control form-control-sm" placeholder="Walk-in Name">
+                    </div>
+                    <div class="col-6">
+                        <input type="text" id="walkinPhone" class="form-control form-control-sm" placeholder="Walk-in Phone">
+                    </div>
+                </div>
+
+                <div id="customerBalanceAlert" class="alert alert-danger py-2 small d-none">
+                    <i class="fa-solid fa-circle-exclamation me-1"></i> Customer Previous Udhaar: <strong id="customerBalanceText">Rs. 0.00</strong>
+                </div>
+
+                <hr class="my-3">
+
+                <!-- Totals Breakdown -->
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted fw-semibold">Subtotal:</span>
+                    <span class="fw-bold text-dark" id="lblSubtotal">Rs. 0.00</span>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-secondary">Overall Discount (Rs.)</label>
+                    <input type="number" id="inputOverallDiscount" class="form-control form-control-lg text-end fw-bold" value="0" min="0" step="10">
+                </div>
+
+                <div class="d-flex justify-content-between mb-3 bg-light p-3 rounded-3 border">
+                    <span class="fs-5 fw-bold text-dark">Grand Total:</span>
+                    <span class="fs-4 fw-bold text-primary" id="lblGrandTotal">Rs. 0.00</span>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-secondary">Paid Amount (Rs.)</label>
+                    <input type="number" id="inputPaidAmount" class="form-control form-control-lg text-end fw-bold text-success" value="0" min="0" step="10">
+                </div>
+
+                <div class="d-flex justify-content-between mb-3">
+                    <span class="fw-bold text-dark">Remaining Balance:</span>
+                    <span class="fw-bold text-danger fs-5" id="lblRemainingBalance">Rs. 0.00</span>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-secondary">Payment Method</label>
+                    <select id="paymentMethodSelect" class="form-select">
+                        <option value="CASH">Cash</option>
+                        <option value="BANK">Bank Transfer</option>
+                        <option value="EASYPAISA">Easypaisa</option>
+                        <option value="JAZZCASH">JazzCash</option>
+                        <option value="OTHER">Other</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <input type="text" id="inputNotes" class="form-control form-control-sm" placeholder="Invoice notes / Serial numbers...">
+                </div>
+
+                <button type="button" class="btn btn-success btn-lg w-100 fw-bold shadow" id="btnSaveInvoice">
+                    <i class="fa-solid fa-floppy-disk me-2"></i> Save & Checkout
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let cart = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('productSearchInput');
+    const dropdown = document.getElementById('searchResultsDropdown');
+    const customerSelect = document.getElementById('customerSelect');
+    const walkinDetails = document.getElementById('walkinDetails');
+
+    // Customer toggle
+    customerSelect.addEventListener('change', function() {
+        const selected = customerSelect.options[customerSelect.selectedIndex];
+        if (customerSelect.value) {
+            walkinDetails.style.display = 'none';
+            const bal = parseFloat(selected.dataset.balance || 0);
+            const alertBox = document.getElementById('customerBalanceAlert');
+            if (bal > 0) {
+                document.getElementById('customerBalanceText').innerText = `Rs. ${bal.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+                alertBox.classList.remove('d-none');
+            } else {
+                alertBox.classList.add('d-none');
+            }
+        } else {
+            walkinDetails.style.display = 'flex';
+            document.getElementById('customerBalanceAlert').classList.add('d-none');
+        }
+    });
+
+    // Product Live Search API
+    searchInput.addEventListener('input', function() {
+        const query = searchInput.value.trim();
+        if (query.length < 1) {
+            dropdown.classList.remove('show');
+            return;
+        }
+
+        fetch(`{% url 'products:product_search_api' %}?q=${encodeURIComponent(query)}`)
+            .then(res => res.json())
+            .then(data => {
+                dropdown.innerHTML = '';
+                if (data.products.length === 0) {
+                    dropdown.innerHTML = '<div class="dropdown-item text-muted disabled">No products found</div>';
+                } else {
+                    data.products.forEach(p => {
+                        const item = document.createElement('a');
+                        item.className = 'dropdown-item d-flex justify-content-between align-items-center py-2 border-bottom';
+                        item.href = '#';
+                        item.innerHTML = `
+                            <div>
+                                <strong>${p.name}</strong> <small class="text-muted">(${p.sku})</small>
+                                <br/><small class="text-secondary">Stock: <span class="${p.is_low_stock ? 'text-danger fw-bold' : 'text-success'}">${p.current_stock} ${p.unit}</span></small>
+                            </div>
+                            <span class="fw-bold text-primary">Rs. ${p.sale_price.toLocaleString()}</span>
+                        `;
+                        item.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            addToCart(p);
+                            searchInput.value = '';
+                            dropdown.classList.remove('show');
+                        });
+                        dropdown.appendChild(item);
+                    });
+                }
+                dropdown.classList.add('show');
+            });
+    });
+
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.classList.remove('show');
+        }
+    });
+
+    document.getElementById('inputOverallDiscount').addEventListener('input', renderCart);
+    document.getElementById('inputPaidAmount').addEventListener('input', renderCart);
+    document.getElementById('btnClearCart').addEventListener('click', function() {
+        cart = [];
+        renderCart();
+    });
+
+    // Checkout Save
+    document.getElementById('btnSaveInvoice').addEventListener('click', submitInvoice);
+});
+
+function addToCart(product) {
+    const existing = cart.find(item => item.product_id === product.id);
+    if (existing) {
+        if (existing.qty + 1 > product.current_stock) {
+            alert(`Cannot add more! Available stock for "${product.name}" is only ${product.current_stock}.`);
+            return;
+        }
+        existing.qty += 1;
+    } else {
+        if (product.current_stock <= 0) {
+            if (!confirm(`Warning: Product "${product.name}" stock is 0. Proceed anyway?`)) {
+                return;
+            }
+        }
+        cart.push({
+            product_id: product.id,
+            name: product.name,
+            sku: product.sku,
+            unit_price: product.sale_price,
+            qty: 1,
+            discount: 0,
+            stock: product.current_stock
+        });
+    }
+    renderCart();
+}
+
+function updateCartQty(index, newQty) {
+    const qty = parseInt(newQty);
+    if (isNaN(qty) || qty <= 0) return;
+    if (qty > cart[index].stock) {
+        alert(`Warning: Available stock is ${cart[index].stock}.`);
+    }
+    cart[index].qty = qty;
+    renderCart();
+}
+
+function updateCartDiscount(index, newDiscount) {
+    const disc = parseFloat(newDiscount) || 0;
+    cart[index].discount = disc;
+    renderCart();
+}
+
+function removeFromCart(index) {
+    cart.splice(index, 1);
+    renderCart();
+}
+
+function renderCart() {
+    const tbody = document.getElementById('cartTableBody');
+    tbody.innerHTML = '';
+
+    if (cart.length === 0) {
+        tbody.innerHTML = `
+            <tr id="emptyCartRow">
+                <td colspan="6" class="text-center text-muted py-5">
+                    <i class="fa-solid fa-basket-shopping fs-1 d-block mb-2 text-secondary opacity-50"></i>
+                    Cart is empty. Search and select products above to add to invoice.
+                </td>
+            </tr>
+        `;
+        document.getElementById('lblSubtotal').innerText = 'Rs. 0.00';
+        document.getElementById('lblGrandTotal').innerText = 'Rs. 0.00';
+        document.getElementById('lblRemainingBalance').innerText = 'Rs. 0.00';
+        return;
+    }
+
+    let subtotal = 0;
+
+    cart.forEach((item, idx) => {
+        const itemTotal = (item.unit_price * item.qty) - item.discount;
+        subtotal += itemTotal;
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>
+                <strong class="d-block text-dark">${item.name}</strong>
+                <small class="text-muted">SKU: ${item.sku}</small>
+            </td>
+            <td>
+                <input type="number" class="form-control form-control-sm text-end" value="${item.unit_price}" onchange="updateCartUnitPrice(${idx}, this.value)">
+            </td>
+            <td>
+                <input type="number" class="form-control form-control-sm text-center" value="${item.qty}" min="1" onchange="updateCartQty(${idx}, this.value)">
+            </td>
+            <td>
+                <input type="number" class="form-control form-control-sm text-end" value="${item.discount}" min="0" onchange="updateCartDiscount(${idx}, this.value)">
+            </td>
+            <td class="fw-bold text-dark text-end">
+                Rs. ${itemTotal.toLocaleString('en-US', {minimumFractionDigits: 2})}
+            </td>
+            <td class="text-center">
+                <button type="button" class="btn btn-sm btn-outline-danger border-0" onclick="removeFromCart(${idx})">
+                    <i class="fa-solid fa-xmark fs-6"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    const overallDiscount = parseFloat(document.getElementById('inputOverallDiscount').value) || 0;
+    const grandTotal = Math.max(0, subtotal - overallDiscount);
+    const paidAmountInput = document.getElementById('inputPaidAmount');
+
+    // Auto fill paid amount if 0 or default to grand total
+    if (parseFloat(paidAmountInput.value) === 0 && grandTotal > 0) {
+        paidAmountInput.value = grandTotal;
+    }
+
+    const paidAmount = parseFloat(paidAmountInput.value) || 0;
+    const remaining = grandTotal - paidAmount;
+
+    document.getElementById('lblSubtotal').innerText = `Rs. ${subtotal.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+    document.getElementById('lblGrandTotal').innerText = `Rs. ${grandTotal.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+    document.getElementById('lblRemainingBalance').innerText = `Rs. ${remaining.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+}
+
+function updateCartUnitPrice(index, newPrice) {
+    const price = parseFloat(newPrice) || 0;
+    cart[index].unit_price = price;
+    renderCart();
+}
+
+function submitInvoice() {
+    if (cart.length === 0) {
+        alert("Please add at least one product to the invoice.");
+        return;
+    }
+
+    const customerId = document.getElementById('customerSelect').value;
+    const walkinName = document.getElementById('walkinName').value;
+    const walkinPhone = document.getElementById('walkinPhone').value;
+    const overallDiscount = parseFloat(document.getElementById('inputOverallDiscount').value) || 0;
+    const paidAmount = parseFloat(document.getElementById('inputPaidAmount').value) || 0;
+    const paymentMethod = document.getElementById('paymentMethodSelect').value;
+    const notes = document.getElementById('inputNotes').value;
+
+    const payload = {
+        customer_id: customerId ? parseInt(customerId) : null,
+        walkin_name: walkinName,
+        walkin_phone: walkinPhone,
+        overall_discount: overallDiscount,
+        paid_amount: paidAmount,
+        payment_method: paymentMethod,
+        notes: notes,
+        items: cart.map(item => ({
+            product_id: item.product_id,
+            qty: item.qty,
+            unit_price: item.unit_price,
+            discount: item.discount
+        }))
+    };
+
+    const btn = document.getElementById('btnSaveInvoice');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Saving Invoice...';
+
+    fetch("{% url 'sales:pos_billing' %}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRFToken": "{{ csrf_token }}"
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-floppy-disk me-2"></i> Save & Checkout';
+
+        if (data.success) {
+            window.location.href = `/sales/${data.invoice_id}/`;
+        } else {
+            alert(`Error: ${data.error}`);
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-floppy-disk me-2"></i> Save & Checkout';
+        alert(`An error occurred: ${err.message}`);
+    });
+}
+</script>
+{% endblock %}

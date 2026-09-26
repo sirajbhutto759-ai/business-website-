@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-9">
+        <div class="card border-0 shadow-sm rounded-3">
+            <div class="card-header bg-white py-3 border-0">
+                <h5 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-screwdriver-wrench me-2 text-primary"></i>{{ title }}</h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Registered Customer</label>
+                            {{ form.customer }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Walk-in Name (if not registered)</label>
+                            {{ form.customer_name }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Customer Phone</label>
+                            {{ form.customer_phone }}
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Service / Repair Type <span class="text-danger">*</span></label>
+                            {{ form.service_type }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Job Status <span class="text-danger">*</span></label>
+                            {{ form.status }}
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label fw-semibold">Fault Description / Job Specifications <span class="text-danger">*</span></label>
+                            {{ form.description }}
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label fw-semibold">Parts & Materials Used</label>
+                            {{ form.parts_materials_used }}
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Labor / Service Charges (Rs.)</label>
+                            {{ form.labor_charges }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Material / Parts Charges (Rs.)</label>
+                            {{ form.material_charges }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Paid Amount (Rs.)</label>
+                            {{ form.paid_amount }}
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Payment Method</label>
+                            {{ form.payment_method }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Service Date</label>
+                            {{ form.service_date }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Completion Date</label>
+                            {{ form.completion_date }}
+                        </div>
+                    </div>
+                    <hr class="my-4">
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{% url 'services:service_list' %}" class="btn btn-light border px-4">Cancel</a>
+                        <button type="submit" class="btn btn-primary px-4 fw-bold"><i class="fa-solid fa-save me-1"></i> Save Ticket</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,101 @@
+{% load humanize %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Receipt #{{ sale.invoice_no }}</title>
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            width: 80mm;
+            margin: 0 auto;
+            padding: 5px;
+            font-size: 12px;
+            color: #000;
+        }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .fw-bold { font-weight: bold; }
+        .border-bottom { border-bottom: 1px dashed #000; padding-bottom: 5px; margin-bottom: 5px; }
+        .border-top { border-top: 1px dashed #000; padding-top: 5px; margin-top: 5px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { font-size: 11px; vertical-align: top; }
+        @media print {
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+<body onload="window.print()">
+    <div class="no-print text-center mb-2" style="padding: 10px;">
+        <button onclick="window.print()" style="padding: 5px 15px; font-size: 14px;">Print Receipt</button>
+    </div>
+
+    <div class="text-center border-bottom">
+        <h3 class="fw-bold" style="margin:0;">SIRAJ UPS & SOLAR</h3>
+        <div style="font-size: 10px;">UPS | Solar | Batteries | Inverters</div>
+        <div style="font-size: 10px;">Ph: {{ shop_settings.phone }}</div>
+    </div>
+
+    <div class="border-bottom" style="font-size: 11px;">
+        <div>Inv #: <strong>{{ sale.invoice_no }}</strong></div>
+        <div>Date: {{ sale.sale_date|date:"d-M-Y h:i A" }}</div>
+        <div>Cust: {{ sale.get_customer_name }}</div>
+        <div>Ph: {{ sale.get_customer_phone }}</div>
+    </div>
+
+    <table>
+        <thead>
+            <tr class="border-bottom text-left">
+                <th>Item</th>
+                <th class="text-center">Qty</th>
+                <th class="text-right">Price</th>
+                <th class="text-right">Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in sale.items.all %}
+            <tr>
+                <td colspan="4" class="fw-bold">{{ item.product.name }}</td>
+            </tr>
+            <tr class="border-bottom">
+                <td><small>{{ item.product.sku }}</small></td>
+                <td class="text-center">{{ item.quantity }}</td>
+                <td class="text-right">{{ item.unit_price|floatformat:0 }}</td>
+                <td class="text-right fw-bold">{{ item.total_price|floatformat:0 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="border-top" style="margin-top: 5px;">
+        <table>
+            <tr>
+                <td>Subtotal:</td>
+                <td class="text-right">Rs. {{ sale.subtotal|floatformat:0 }}</td>
+            </tr>
+            {% if sale.overall_discount > 0 %}
+            <tr>
+                <td>Discount:</td>
+                <td class="text-right">- Rs. {{ sale.overall_discount|floatformat:0 }}</td>
+            </tr>
+            {% endif %}
+            <tr class="fw-bold" style="font-size: 13px;">
+                <td>Grand Total:</td>
+                <td class="text-right">Rs. {{ sale.grand_total|floatformat:0 }}</td>
+            </tr>
+            <tr>
+                <td>Paid Amount:</td>
+                <td class="text-right">Rs. {{ sale.paid_amount|floatformat:0 }}</td>
+            </tr>
+            <tr class="fw-bold">
+                <td>Balance:</td>
+                <td class="text-right">Rs. {{ sale.remaining_balance|floatformat:0 }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="text-center border-top" style="margin-top: 10px; font-size: 10px;">
+        <div>Thank you for choosing Siraj UPS & Solar!</div>
+    </div>
+</body>
+</html>
